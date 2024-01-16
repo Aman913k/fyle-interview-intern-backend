@@ -5,6 +5,10 @@ from core.libs import helpers, assertions
 from core.models.teachers import Teacher
 from core.models.students import Student
 from sqlalchemy.types import Enum as BaseEnum
+from core.libs.exceptions import FyleError
+from flask import abort
+
+
 
 
 class GradeEnum(str, enum.Enum):
@@ -67,6 +71,7 @@ class Assignment(db.Model):
         assertions.assert_valid(assignment.content is not None, 'assignment with empty content cannot be submitted')
 
         assignment.teacher_id = teacher_id
+        assignment.state = AssignmentStateEnum.SUBMITTED
         db.session.flush()
 
         return assignment
@@ -77,7 +82,16 @@ class Assignment(db.Model):
         assignment = Assignment.get_by_id(_id)
         assertions.assert_found(assignment, 'No assignment with this id was found')
         assertions.assert_valid(grade is not None, 'assignment with empty grade cannot be graded')
-
+        
+        if assignment.state == AssignmentStateEnum.DRAFT:
+            raise FyleError(status_code=400, message="Cannot grade an assignment that is not in the SUBMITTED state")
+        # if assignment.state == AssignmentStateEnum.DRAFT:
+        #     raise FyleError(status_code=400, message="Cannot grade an assignment that is not in the SUBMITTED state")
+        if assignment is None:
+            return FyleError(status_code=400, message="Assignment not found")
+        if auth_principal.teacher_id is not None and assignment.teacher_id != auth_principal.teacher_id :
+            raise FyleError(status_code=400, message="Cannot grade an assignment submitted by another teacher")
+    
         assignment.grade = grade
         assignment.state = AssignmentStateEnum.GRADED
         db.session.flush()
@@ -90,4 +104,16 @@ class Assignment(db.Model):
 
     @classmethod
     def get_assignments_by_teacher(cls, teacher_id):
-        return cls.filter(cls.teacher_id == teacher_id).all()
+        return cls.filter(cls.teacher_id == teacher_id, cls.state == AssignmentStateEnum.GRADED,cls.state == AssignmentStateEnum.SUBMITTED).all()
+    @classmethod
+    def get_assignments_by_principal(cls):
+        return cls.filter().all()
+    @classmethod
+    def has_student_submitted(cls,student_id, assignment_id):
+        count = cls.filter(
+            cls.student_id == student_id,
+            cls.id == assignment_id,
+            cls.state == AssignmentStateEnum.SUBMITTED
+        ).count()
+
+        return count > 0

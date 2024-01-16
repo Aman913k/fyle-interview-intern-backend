@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      FLASK_APP: core/server.py
+      DATABASE_URL: sqlite:///./store.sqlite3
+    command: gunicorn -c gunicorn_config.py core.server:app

@@ -39,6 +39,8 @@ def test_grade_assignment(client, h_principal):
         },
         headers=h_principal
     )
+    print(response.status_code)
+    print(response.get_json())  # Print the response content
 
     assert response.status_code == 200
 
@@ -60,3 +62,42 @@ def test_regrade_assignment(client, h_principal):
 
     assert response.json['data']['state'] == AssignmentStateEnum.GRADED.value
     assert response.json['data']['grade'] == GradeEnum.B
+
+
+def test_grade_assignment_bad_assignment_principal(client, h_principal):
+    """
+    failure case: If an assignment does not exists check and throw 404
+    """
+    response = client.post(
+        '/principal/assignments/grade',
+        headers=h_principal,
+        json={
+            "id": 100000,
+            "grade": "A"
+        }
+    )
+
+    assert response.status_code == 404
+    data = response.json
+
+    # assert data['error'] == 'FyleError'
+    assert data['error'] == 'FyleError'
+
+
+def test_grade_assignment_bad_grade_principal(client, h_principal):
+    """
+    failure case: API should allow only grades available in enum
+    """
+    response = client.post(
+        '/principal/assignments/grade',
+        headers=h_principal,
+        json={
+            "id": 1,
+            "grade": "AB"
+        }
+    )
+
+    assert response.status_code == 400
+    data = response.json
+
+    assert data['error'] == 'ValidationError'

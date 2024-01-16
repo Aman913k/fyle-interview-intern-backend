@@ -1,8 +1,10 @@
-from flask import Blueprint
+from flask import Blueprint,abort
 from core import db
 from core.apis import decorators
 from core.apis.responses import APIResponse
 from core.models.assignments import Assignment
+from core.libs.exceptions import FyleError
+
 
 from .schema import AssignmentSchema, AssignmentSubmitSchema
 student_assignments_resources = Blueprint('student_assignments_resources', __name__)
@@ -25,6 +27,9 @@ def upsert_assignment(p, incoming_payload):
     assignment = AssignmentSchema().load(incoming_payload)
     assignment.student_id = p.student_id
 
+    if assignment.content is None:
+        raise abort(400,"Invalid input: content cannot be None")
+
     upserted_assignment = Assignment.upsert(assignment)
     db.session.commit()
     upserted_assignment_dump = AssignmentSchema().dump(upserted_assignment)
@@ -37,6 +42,10 @@ def upsert_assignment(p, incoming_payload):
 def submit_assignment(p, incoming_payload):
     """Submit an assignment"""
     submit_assignment_payload = AssignmentSubmitSchema().load(incoming_payload)
+
+    if Assignment.has_student_submitted(p.student_id, incoming_payload['id']):
+        raise FyleError(status_code=400, message="only a draft assignment can be submitted")
+
 
     submitted_assignment = Assignment.submit(
         _id=submit_assignment_payload.id,

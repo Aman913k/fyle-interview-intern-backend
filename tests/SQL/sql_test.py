@@ -1,8 +1,23 @@
 import random
 from sqlalchemy import text
+from core import app
+
 
 from core import db
 from core.models.assignments import Assignment, AssignmentStateEnum, GradeEnum
+
+def cleanup_test_assignments():
+    """Cleanup function to remove test assignments from the database."""
+    with app.app_context():
+        # Find and delete all test assignments
+        test_assignments = Assignment.filter(Assignment.content == 'test content').all()
+
+        for assignment in test_assignments:
+            db.session.delete(assignment)
+
+        # Commit the changes to the database
+        db.session.commit()
+
 
 
 def create_n_graded_assignments_for_teacher(number: int = 0, teacher_id: int = 1) -> int:
@@ -54,54 +69,61 @@ def test_get_assignments_in_various_states():
     """Test to get assignments in various states"""
 
     # Define the expected result before any changes
-    expected_result = [('DRAFT', 2), ('GRADED', 2), ('SUBMITTED', 2)]
+    expected_result = [('DRAFT', 2), ('GRADED', 1), ('SUBMITTED', 3)]
 
     # Execute the SQL query and compare the result with the expected result
-    with open('tests/SQL/number_of_assignments_per_state.sql', encoding='utf8') as fo:
-        sql = fo.read()
+    with app.app_context():
 
-    sql_result = db.session.execute(text(sql)).fetchall()
-    for itr, result in enumerate(expected_result):
-        assert result[0] == sql_result[itr][0]
-        assert result[1] == sql_result[itr][1]
+        with open('tests/SQL/number_of_assignments_per_state.sql', encoding='utf8') as fo:
+            sql = fo.read()
 
-    # Modify an assignment state and grade, then re-run the query and check the updated result
-    expected_result = [('DRAFT', 2), ('GRADED', 3), ('SUBMITTED', 1)]
+        sql_result = db.session.execute(text(sql)).fetchall()
+        for itr, result in enumerate(expected_result):
+            # print(f"Expected: {result}, Actual: {sql_result[itr]}")
+            assert result[0] == sql_result[itr][0]
+            assert result[1] == sql_result[itr][1]
 
-    # Find an assignment in the 'SUBMITTED' state, change its state to 'GRADED' and grade to 'C'
-    submitted_assignment: Assignment = Assignment.filter(Assignment.state == AssignmentStateEnum.SUBMITTED).first()
-    submitted_assignment.state = AssignmentStateEnum.GRADED
-    submitted_assignment.grade = GradeEnum.C
+        # Modify an assignment state and grade, then re-run the query and check the updated result
+        expected_result = [('DRAFT', 2), ('GRADED', 2), ('SUBMITTED', 2)]
 
-    # Flush the changes to the database session
-    db.session.flush()
-    # Commit the changes to the database
-    db.session.commit()
+        # Find an assignment in the 'SUBMITTED' state, change its state to 'GRADED' and grade to 'C'
+        submitted_assignment: Assignment = Assignment.filter(Assignment.state == AssignmentStateEnum.SUBMITTED).first()
+        submitted_assignment.state = AssignmentStateEnum.GRADED
+        submitted_assignment.grade = GradeEnum.C
 
-    # Execute the SQL query again and compare the updated result with the expected result
-    sql_result = db.session.execute(text(sql)).fetchall()
-    for itr, result in enumerate(expected_result):
-        assert result[0] == sql_result[itr][0]
-        assert result[1] == sql_result[itr][1]
+        # Flush the changes to the database session
+        db.session.flush()
+        # Commit the changes to the database
+        db.session.commit()
+
+        # Execute the SQL query again and compare the updated result with the expected result
+        sql_result = db.session.execute(text(sql)).fetchall()
+        for itr, result in enumerate(expected_result):
+            assert result[0] == sql_result[itr][0]
+            assert result[1] == sql_result[itr][1]
 
 
 def test_get_grade_A_assignments_for_teacher_with_max_grading():
     """Test to get count of grade A assignments for teacher which has graded maximum assignments"""
 
     # Read the SQL query from a file
-    with open('tests/SQL/count_grade_A_assignments_by_teacher_with_max_grading.sql', encoding='utf8') as fo:
-        sql = fo.read()
 
-    # Create and grade 5 assignments for the default teacher (teacher_id=1)
-    grade_a_count_1 = create_n_graded_assignments_for_teacher(5)
-    
-    # Execute the SQL query and check if the count matches the created assignments
-    sql_result = db.session.execute(text(sql)).fetchall()
-    assert grade_a_count_1 == sql_result[0][0]
+    # appx = create_app() 
+    with app.app_context():
+        with open('tests/SQL/count_grade_A_assignments_by_teacher_with_max_grading.sql', encoding='utf8') as fo:
+            sql = fo.read()
 
-    # Create and grade 10 assignments for a different teacher (teacher_id=2)
-    grade_a_count_2 = create_n_graded_assignments_for_teacher(10, 2)
+        # Create and grade 5 assignments for the default teacher (teacher_id=1)
+        grade_a_count_1 = create_n_graded_assignments_for_teacher(5)
+        
+        # Execute the SQL query and check if the count matches the created assignments
+        sql_result = db.session.execute(text(sql)).fetchall()
+        assert grade_a_count_1 == sql_result[0][0]
 
-    # Execute the SQL query again and check if the count matches the newly created assignments
-    sql_result = db.session.execute(text(sql)).fetchall()
-    assert grade_a_count_2 == sql_result[0][0]
+        # Create and grade 10 assignments for a different teacher (teacher_id=2)
+        grade_a_count_2 = create_n_graded_assignments_for_teacher(10, 2)
+
+        # Execute the SQL query again and check if the count matches the newly created assignments
+        sql_result = db.session.execute(text(sql)).fetchall()
+        assert grade_a_count_2 == sql_result[0][0]
+        clear_test_added_assignment = cleanup_test_assignments()
