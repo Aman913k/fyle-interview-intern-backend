@@ -13,7 +13,7 @@ To build the Docker image for the project, follow these steps:
 1. Open a terminal and navigate to the project's root directory where the Dockerfile is located.
 
 2. Run the following command to build the Docker image:   **docker build -t fyle_dockerized_aman .**
-              , this command creates a Docker image named fyle_dockerized_aman based on the specifications defined in the Dockerfile.
+               ,this command creates a Docker image named fyle_dockerized_aman based on the specifications defined in the Dockerfile.
 
 3. Wait for the build process to complete. Upon successful completion, you should see a message indicating that the image has been built.
 
@@ -21,7 +21,7 @@ To build the Docker image for the project, follow these steps:
 To run the Docker container for the project, use the following steps:
 
 1. Run the following command to start the Docker container:   **docker run -p 8000:7755 fyle_dockerized_aman**
- , this command maps port 8000 on your local machine to port 7755 within the Docker container.
+  ,this command maps port 8000 on your local machine to port 7755 within the Docker container.
 
 2. Access the project by visiting **http://localhost:8000** in your web browser.
 
