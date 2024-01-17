@@ -25,7 +25,7 @@ To run the Docker container for the project, use the following steps:
 
 2. Access the project by visiting **http://localhost:8000** in your web browser.
 
-3. To stop the container, press ** Ctrl + C ** in the terminal where the container is running. Alternatively, you can run the following command in a new terminal window:   **docker stop <772d7c277d84>**
+3. To stop the container, press **Ctrl + C** in the terminal where the container is running. Alternatively, you can run the following command in a new terminal window:   **docker stop <772d7c277d84>**
 
 
 # Conclusion:
